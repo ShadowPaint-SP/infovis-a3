@@ -1,5 +1,69 @@
 body {
-    height: 100%;
+    margin: 0;
+    min-height: 100%;
+    background: #f7f8f8;
+    color: #1f2933;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-/* YOUR CSS CODE GOES HERE */
+.page {
+    padding: 24px;
+}
+
+.chart-section {
+    width: 100%;
+}
+
+.chart-header {
+    margin-bottom: 16px;
+}
+
+.chart-header h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 650;
+}
+
+.chart-shell {
+    overflow-x: auto;
+    background: #ffffff;
+    border: 1px solid #d7dcdf;
+}
+
+.parallel-chart {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.player-lines path {
+    fill: none;
+    stroke-width: 1.1;
+    stroke-opacity: 0.34;
+}
+
+.player-lines path:hover {
+    stroke: #111827;
+    stroke-opacity: 0.95;
+    stroke-width: 2.4;
+}
+
+.axes .domain,
+.axes line {
+    stroke: #6b7280;
+}
+
+.axes .domain {
+    stroke-width: 1.3;
+}
+
+.axes text {
+    fill: #28323c;
+    font-size: 10px;
+}
+
+.axis-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-anchor: start;
+}

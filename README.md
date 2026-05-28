@@ -2,7 +2,16 @@ InfoVis Assignment 3
 This repository contains the bare-bones files to start up and solve the third assignment of the InfoVis course at TU Dresden.
 
 Local development:
-Pre-requisite: Node.js. Install serve using:
+Start a local web server from the project folder:
+
+```zsh
+python3 -m http.server 8000
+```
+
+Then open http://localhost:8000.
+
+Alternative with Node.js:
+Install serve using:
 
 npm install serve --global
 
