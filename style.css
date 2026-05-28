@@ -48,6 +48,10 @@ body {
     stroke-width: 2.4;
 }
 
+.player-lines path.is-deselected {
+    stroke-opacity: 0.08;
+}
+
 .axes .domain,
 .axes line {
     stroke: #6b7280;
@@ -66,4 +70,10 @@ body {
     font-size: 12px;
     font-weight: 600;
     text-anchor: start;
+}
+
+.axis-brush .selection {
+    fill: #2563eb;
+    fill-opacity: 0.18;
+    stroke: #2563eb;
 }

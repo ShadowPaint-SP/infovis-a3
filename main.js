@@ -91,7 +91,7 @@ function renderParallelCoordinates(players) {
         .x((point) => point[0])
         .y((point) => point[1]);
 
-    chart // add the player lines with the value as y and x where the dimension line will be
+    const playerLines = chart // add the player lines with the value as y and x where the dimension line will be
         .append("g")
         .attr("class", "player-lines")
         .selectAll("path")
@@ -100,7 +100,9 @@ function renderParallelCoordinates(players) {
         .attr("d", (player) =>
             line(dimensions.map((dimension) => [x(dimension), y.get(dimension)(player[dimension])]))
         )
-        .attr("stroke", (player) => color(player.mins_played))
+        .attr("stroke", (player) => color(player.mins_played));
+
+    playerLines
         .append("title")
         .text((player) => player.label);
 
@@ -123,6 +125,42 @@ function renderParallelCoordinates(players) {
         .attr("transform", "translate(0,-4) rotate(-45)")
         .text((dimension) => dimension);
 
+    const deselectcol = "#ddd";
+    const brushwidth = 50;
+    const selections = new Map();
+    const brush = d3.brushY()
+        .extent([
+            [-brushwidth / 2, 0],
+            [brushwidth / 2, innerHeight]
+        ])
+        .on("start brush end", brushed);
+
+    function brushed({ selection }, dimension) {
+        if (selection === null) {
+            selections.delete(dimension);
+        } else {
+            selections.set(dimension, selection.map(y.get(dimension).invert).sort(d3.ascending));
+        }
+
+        playerLines.each(function (player) {
+            const selected = Array.from(selections).every(([dimension, [min, max]]) =>
+                player[dimension] >= min && player[dimension] <= max
+            );
+
+            d3.select(this)
+                .classed("is-deselected", !selected)
+                .attr("stroke", selected ? color(player.mins_played) : deselectcol);
+
+            if (selected) {
+                d3.select(this).raise();
+            }
+        });
+    }
+
+    axisGroups
+        .append("g")
+        .attr("class", "axis-brush")
+        .call(brush);
 
     d3.select("#parallel-coordinates-container")
         .node()
