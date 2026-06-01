@@ -22,6 +22,8 @@ const dimensions = [
 
 const splomdimensions = dimensions.slice(1, 6)
 
+const selectionDispatcher = d3.dispatch("brush");
+
 window.addEventListener("load", async () => {
     const dataset = await d3.json(DATA_PATH);
     // The actual player rows are inside dataset.nodes.
@@ -105,6 +107,16 @@ function renderParallelCoordinates(players) {
         )
         .attr("stroke", (player) => color(player.mins_played));
 
+    selectionDispatcher.on("brush.pcp", selectedIds => {
+        if (selectedIds.size === 0) {
+            playerLines
+                .classed("is-deselected", false);
+            return;
+        }
+
+        playerLines
+            .classed("is-deselected", d => !selectedIds.has(d.id));
+    });
     playerLines
         .append("title")
         .text((player) => player.label);
@@ -139,16 +151,22 @@ function renderParallelCoordinates(players) {
         .on("start brush end", brushed);
 
     function brushed({ selection }, dimension) {
-        if (selection === null) {
+        if (selection == null) {
             selections.delete(dimension);
         } else {
             selections.set(dimension, selection.map(y.get(dimension).invert).sort(d3.ascending));
         }
 
+        const selectedIds = new Set();
+
         playerLines.each(function (player) {
             const selected = Array.from(selections).every(([dimension, [min, max]]) =>
                 player[dimension] >= min && player[dimension] <= max
             );
+
+            if (selected) {
+                selectedIds.add(player.id);
+            }
 
             d3.select(this)
                 .classed("is-deselected", !selected)
@@ -158,6 +176,7 @@ function renderParallelCoordinates(players) {
                 d3.select(this).raise();
             }
         });
+        selectionDispatcher.call("brush", this, selectedIds);
     }
 
     axisGroups
@@ -253,8 +272,17 @@ function renderScatterplotMatrix(players) {
         .attr("fill-opacity", 0.7)
         .attr("fill", d => color(d.id));
 
+    selectionDispatcher.on("brush.splom", selectedIds => {
+        if (selectedIds.size === 0) {
+            circle.classed("hidden", false);
+            return;
+        }
+
+        circle.classed("hidden", d => !selectedIds.has(d.id));
+    });
+
     // Ignore this line if you don't need the brushing behavior.
-    cell.call(brush, circle, svg, {padding, size, x, y, columns});
+    cell.call(brush, circle, svg, { padding, size, x, y, columns });
 
     circle
         .append("title")
@@ -272,7 +300,7 @@ function renderScatterplotMatrix(players) {
         .attr("dy", ".71em")
         .text(d => d);
 
-    function brush(cell, circle, svg, {padding, size, x, y, columns}) {
+    function brush(cell, circle, svg, { padding, size, x, y, columns }) {
         const brush = d3.brush()
             .extent([[padding / 2, padding / 2], [size - padding / 2, size - padding / 2]])
             .on("start", brushstarted)
@@ -286,37 +314,45 @@ function renderScatterplotMatrix(players) {
         // Clear the previously-active brush, if any.
         function brushstarted() {
             if (brushCell !== this) {
-            d3.select(brushCell).call(brush.move, null);
-            brushCell = this;
+                if (brushCell) {
+                    d3.select(brushCell).call(brush.move, null);
+                }
+                brushCell = this;
             }
         }
 
         // Highlight the selected circles.
-        function brushed({selection}, [i, j]) {
-            let selected = [];
+        function brushed({ selection }, [i, j]) {
+            let selected = []
+            let selectedIds = new Set();
             if (selection) {
-            const [[x0, y0], [x1, y1]] = selection; 
-            circle.classed("hidden",
-                d => x0 > x[i](d[columns[i]])
-                || x1 < x[i](d[columns[i]])
-                || y0 > y[j](d[columns[j]])
-                || y1 < y[j](d[columns[j]]));
-            selected = data.filter(
-                d => x0 < x[i](d[columns[i]])
-                && x1 > x[i](d[columns[i]])
-                && y0 < y[j](d[columns[j]])
-                && y1 > y[j](d[columns[j]]));
+                const [[x0, y0], [x1, y1]] = selection;
+                circle.classed("hidden",
+                    d => x0 > x[i](d[columns[i]])
+                        || x1 < x[i](d[columns[i]])
+                        || y0 > y[j](d[columns[j]])
+                        || y1 < y[j](d[columns[j]]));
+                selected = players.filter(
+                    d => x0 < x[i](d[columns[i]])
+                        && x1 > x[i](d[columns[i]])
+                        && y0 < y[j](d[columns[j]])
+                        && y1 > y[j](d[columns[j]]));
             }
+            selected.forEach(player => {
+                selectedIds.add(player['id'])
+            });
             svg.property("value", selected).dispatch("input");
+            selectionDispatcher.call("brush", this, selectedIds)
         }
 
         // If the brush is empty, select all circles.
-        function brushended({selection}) {
+        function brushended({ selection }) {
             if (selection) return;
             svg.property("value", []).dispatch("input");
             circle.classed("hidden", false);
+            selectionDispatcher.call("brush", this, new Set());
         }
-        }
+    }
     d3.select("#scatterplot-matrix-container")
         .node()
         .appendChild(svg.node());
