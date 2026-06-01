@@ -230,7 +230,7 @@ function renderScatterplotMatrix(players) {
         .selectAll("g")
         .data(d3.cross(d3.range(columns.length), d3.range(columns.length)))
         .join("g")
-        .attr("transform", ([i, j]) => `translate(${(columns.length - 1 - i) * size},${j * size})`);
+        .attr("transform", ([i, j]) => `translate(${(columns.length - 1 - i) * size},${j * size})`); //control the matrix
 
     cell.append("rect")
         .attr("fill", "none")
@@ -253,6 +253,9 @@ function renderScatterplotMatrix(players) {
         .attr("fill-opacity", 0.7)
         .attr("fill", d => color(d.id));
 
+    // Ignore this line if you don't need the brushing behavior.
+    cell.call(brush, circle, svg, {padding, size, x, y, columns});
+
     circle
         .append("title")
         .text(d => d.label);
@@ -269,7 +272,51 @@ function renderScatterplotMatrix(players) {
         .attr("dy", ".71em")
         .text(d => d);
 
-    console.log("1")
+    function brush(cell, circle, svg, {padding, size, x, y, columns}) {
+        const brush = d3.brush()
+            .extent([[padding / 2, padding / 2], [size - padding / 2, size - padding / 2]])
+            .on("start", brushstarted)
+            .on("brush", brushed)
+            .on("end", brushended);
+
+        cell.call(brush);
+
+        let brushCell;
+
+        // Clear the previously-active brush, if any.
+        function brushstarted() {
+            if (brushCell !== this) {
+            d3.select(brushCell).call(brush.move, null);
+            brushCell = this;
+            }
+        }
+
+        // Highlight the selected circles.
+        function brushed({selection}, [i, j]) {
+            let selected = [];
+            if (selection) {
+            const [[x0, y0], [x1, y1]] = selection; 
+            circle.classed("hidden",
+                d => x0 > x[i](d[columns[i]])
+                || x1 < x[i](d[columns[i]])
+                || y0 > y[j](d[columns[j]])
+                || y1 < y[j](d[columns[j]]));
+            selected = data.filter(
+                d => x0 < x[i](d[columns[i]])
+                && x1 > x[i](d[columns[i]])
+                && y0 < y[j](d[columns[j]])
+                && y1 > y[j](d[columns[j]]));
+            }
+            svg.property("value", selected).dispatch("input");
+        }
+
+        // If the brush is empty, select all circles.
+        function brushended({selection}) {
+            if (selection) return;
+            svg.property("value", []).dispatch("input");
+            circle.classed("hidden", false);
+        }
+        }
     d3.select("#scatterplot-matrix-container")
         .node()
         .appendChild(svg.node());
