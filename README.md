@@ -25,3 +25,11 @@ Note: feel free to explore other development environments such as Vite, Flask (p
 
 Debugging:
 Feel free to make extensive use of your browser's development tools! In chrome-based browsers, you can simply use Ctrl+J to open the browser console, which will show all the console.log and similar that you write in the code.
+
+
+# AI Usage
+
+We used AI for concept explanation like figuring out what certain things of the D3 library do.
+Also used AI for debugging small issues, for example we got the linked brushing working but one chart didnt properly update when deselecting. AI pointed out where the issue was and fixed it. 
+
+AI provider used: ChatGPT with `GPT5.5-medium`
