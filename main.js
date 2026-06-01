@@ -20,12 +20,15 @@ const dimensions = [
     "goals"
 ];
 
+const splomdimensions = dimensions.slice(1, 5)
+
 window.addEventListener("load", async () => {
     const dataset = await d3.json(DATA_PATH);
     // The actual player rows are inside dataset.nodes.
     const players = normalizePlayers(dataset.nodes);
 
     renderParallelCoordinates(players)
+    renderScatterplotMatrix(players)
 });
 
 function normalizePlayers(nodes) {
@@ -163,6 +166,111 @@ function renderParallelCoordinates(players) {
         .call(brush);
 
     d3.select("#parallel-coordinates-container")
+        .node()
+        .appendChild(svg.node());
+}
+
+
+function renderScatterplotMatrix(players) {
+    const margin = { top: 80, right: 24, bottom: 16, left: 24 };
+    const width = 928;
+    const height = width;
+    const padding = 28;
+    const columns = splomdimensions;
+    const size = (width - (columns.length + 1) * padding) / columns.length + padding;
+
+    const svg = d3.create("svg")
+        .attr("id", "parallel-coordinates-chart")
+        .attr("class", "parallel-chart")
+        .attr("viewBox", `0 0 ${width} ${height}`)
+        .attr("role", "img");
+
+    const chart = svg.append("g")
+        .attr("class", "plot-area")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const x = columns.map(c => d3.scaleLinear()
+        .domain(d3.extent(players, d => d[c]))
+        .rangeRound([padding / 2, size - padding / 2]));
+
+    const y = x.map(x => x.copy().range([size - padding / 2, padding / 2]));
+
+    const color = d3.scaleOrdinal()
+        .domain(players.map(d => d.id))
+        .range(d3.schemeCategory10);
+
+    const axisx = d3.axisBottom()
+        .ticks(6)
+        .tickSize(size * columns.length);
+    const xAxis = g => g.selectAll("g").data(x).join("g")
+        .attr("transform", (d, i) => `translate(${i * size},0)`)
+        .each(function (d) { return d3.select(this).call(axisx.scale(d)); })
+        .call(g => g.select(".domain").remove())
+        .call(g => g.selectAll(".tick line").attr("stroke", "#ddd"));
+
+    const axisy = d3.axisLeft()
+        .ticks(6)
+        .tickSize(-size * columns.length);
+    const yAxis = g => g.selectAll("g").data(y).join("g")
+        .attr("transform", (d, i) => `translate(0,${i * size})`)
+        .each(function (d) { return d3.select(this).call(axisy.scale(d)); })
+        .call(g => g.select(".domain").remove())
+        .call(g => g.selectAll(".tick line").attr("stroke", "#ddd"));
+
+    chart.append("style")
+        .text(`circle.hidden { fill: #000; fill-opacity: 1; r: 1px; }`);
+
+    chart.append("g")
+        .call(xAxis);
+
+    chart.append("g")
+        .call(yAxis);
+
+    const cell = chart.append("g")
+        .selectAll("g")
+        .data(d3.cross(d3.range(columns.length), d3.range(columns.length)))
+        .join("g")
+        .attr("transform", ([i, j]) => `translate(${i * size},${j * size})`);
+
+    cell.append("rect")
+        .attr("fill", "none")
+        .attr("stroke", "#aaa")
+        .attr("x", padding / 2 + 0.5)
+        .attr("y", padding / 2 + 0.5)
+        .attr("width", size - padding)
+        .attr("height", size - padding);
+
+    cell.each(function ([i, j]) {
+        d3.select(this).selectAll("circle")
+            .data(players.filter(d => !isNaN(d[columns[i]]) && !isNaN(d[columns[j]])))
+            .join("circle")
+            .attr("cx", d => x[i](d[columns[i]]))
+            .attr("cy", d => y[j](d[columns[j]]));
+    });
+
+    const circle = cell.selectAll("circle")
+        .attr("r", 3.5)
+        .attr("fill-opacity", 0.7)
+        .attr("fill", d => color(d.id));
+
+    circle
+        .append("title")
+        .text(d => d.label);
+
+    chart.append("g")
+        .style("font", "bold 10px sans-serif")
+        .style("pointer-events", "none")
+        .selectAll("text")
+        .data(columns)
+        .join("text")
+        .attr("transform", (d, i) => `translate(${i * size},${i * size})`)
+        .attr("x", padding)
+        .attr("y", padding)
+        .attr("dy", ".71em")
+        .text(d => d);
+
+    console.log("1")
+    d3.select("#scatterplot-matrix-container")
         .node()
         .appendChild(svg.node());
 }
