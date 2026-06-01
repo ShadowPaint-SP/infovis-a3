@@ -20,7 +20,7 @@ const dimensions = [
     "goals"
 ];
 
-const splomdimensions = dimensions.slice(1, 5)
+const splomdimensions = dimensions.slice(1, 6)
 
 window.addEventListener("load", async () => {
     const dataset = await d3.json(DATA_PATH);
@@ -172,9 +172,9 @@ function renderParallelCoordinates(players) {
 
 
 function renderScatterplotMatrix(players) {
-    const margin = { top: 80, right: 24, bottom: 16, left: 24 };
+    const margin = { top: 24, right: 24, bottom: 24, left: 24 };
     const width = 928;
-    const height = width;
+    const height = width + 0;
     const padding = 28;
     const columns = splomdimensions;
     const size = (width - (columns.length + 1) * padding) / columns.length + padding;
@@ -195,9 +195,9 @@ function renderScatterplotMatrix(players) {
 
     const y = x.map(x => x.copy().range([size - padding / 2, padding / 2]));
 
-    const color = d3.scaleOrdinal()
-        .domain(players.map(d => d.id))
-        .range(d3.schemeCategory10);
+    const color = d3.scaleSequential()
+        .domain(d3.extent(players, d => d.id))
+        .interpolator(d3.interpolatePlasma);
 
     const axisx = d3.axisBottom()
         .ticks(6)
@@ -230,7 +230,7 @@ function renderScatterplotMatrix(players) {
         .selectAll("g")
         .data(d3.cross(d3.range(columns.length), d3.range(columns.length)))
         .join("g")
-        .attr("transform", ([i, j]) => `translate(${i * size},${j * size})`);
+        .attr("transform", ([i, j]) => `translate(${(columns.length - 1 - i) * size},${j * size})`);
 
     cell.append("rect")
         .attr("fill", "none")
